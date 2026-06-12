@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - esbuild
+overrides:
+  react-day-picker: ^9
+  zod: ^4.4.3
