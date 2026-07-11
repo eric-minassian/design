@@ -1,5 +1,11 @@
+# Single-package workspace so git installs (pnpm add github:...) succeed.
+# Without `packages`, pnpm errors with "packages field missing or empty".
+packages:
+  - "."
+
 allowBuilds:
   esbuild: true
+
 overrides:
   react-day-picker: ^9
   zod: ^4.4.3
