@@ -1,5 +1,4 @@
-# Single-package workspace so git installs (pnpm add github:...) succeed.
-# Without `packages`, pnpm errors with "packages field missing or empty".
+# Settings for this package (pnpm 11+). Not a multi-package monorepo.
 packages:
   - "."
 

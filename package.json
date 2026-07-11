@@ -51,7 +51,6 @@
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "prepare": "pnpm run build",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
