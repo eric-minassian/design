@@ -100,7 +100,7 @@ export const componentGroups: ComponentGroup[] = [
       { slug: "card", title: "Card", description: "A raised, bordered group of related content." },
       { slug: "item", title: "Item", description: "A flexible row: media, text, and actions." },
       { slug: "table", title: "Table", description: "Dense data with hairline rows." },
-      { slug: "data-table", title: "Data table", description: "Sort, search, filter, select and page through rows." },
+      { slug: "data-table", title: "Data table", description: "Sort, search, filter, select, edit and page through rows." },
       { slug: "avatar", title: "Avatar", description: "A person or workspace, with a fallback.", baseUi: "avatar" },
       { slug: "kbd", title: "Kbd", description: "A keyboard shortcut hint." },
       { slug: "separator", title: "Separator", description: "A hairline between things.", baseUi: "separator" },
