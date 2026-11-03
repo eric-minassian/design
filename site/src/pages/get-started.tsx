@@ -1,3 +1,4 @@
+import { version } from "../../../package.json"
 import { Code } from "~/components/code"
 import { PageHeader } from "~/components/page-header"
 
@@ -42,7 +43,7 @@ export function GetStartedPage() {
           </Prose>
           <Snippet
             lang="bash"
-            code={`# latest\npnpm add github:eric-minassian/design#release\n\n# pinned\npnpm add github:eric-minassian/design#v0.1.0`}
+            code={`# latest\npnpm add github:eric-minassian/design#release\n\n# pinned\npnpm add github:eric-minassian/design#v${version}`}
           />
         </Step>
         <Step title="Add the styles">
