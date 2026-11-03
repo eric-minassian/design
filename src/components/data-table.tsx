@@ -36,9 +36,11 @@ import {
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
+  CircleAlertIcon,
   Columns3Icon,
   ListFilterIcon,
   SearchIcon,
@@ -59,6 +61,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu"
+import { Input } from "@/components/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/input-group"
 import {
   Select,
@@ -68,6 +71,7 @@ import {
   SelectValue,
 } from "@/components/select"
 import { Skeleton } from "@/components/skeleton"
+import { Spinner } from "@/components/spinner"
 import {
   Table,
   TableBody,
@@ -76,7 +80,50 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/table"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip"
 import { cn } from "@/lib/utils"
+
+/** Return a message to reject the value and keep the editor open. */
+type DataTableCellValidator<TValue> = (value: TValue) => string | undefined
+
+type DataTableCellEditor =
+  | {
+      type: "text"
+      placeholder?: string
+      required?: boolean
+      validate?: DataTableCellValidator<string>
+    }
+  | {
+      type: "number"
+      placeholder?: string
+      min?: number
+      max?: number
+      step?: number
+      validate?: DataTableCellValidator<number>
+    }
+  | {
+      type: "select"
+      placeholder?: string
+      options: { label: string; value: string; icon?: React.ReactNode }[]
+    }
+  | {
+      /** A date picker, a combobox, or anything else. Escape cancels for you. */
+      type: "custom"
+      placeholder?: string
+      render: (props: {
+        value: unknown
+        commit: (value: unknown) => void
+        cancel: () => void
+      }) => React.ReactNode
+    }
+
+type DataTableCellEdit<TData> = {
+  row: TData
+  rowId: string
+  columnId: string
+  value: unknown
+  previous: unknown
+}
 
 type DataTableColumnMeta = {
   /** Right-align numbers so they can be compared. Also applies tabular figures. */
@@ -85,6 +132,8 @@ type DataTableColumnMeta = {
   label?: string
   /** Classes for this column's header and cells, such as a fixed width. */
   className?: string
+  /** Makes the column's cells editable in place. Needs `onCellEdit` on the table. */
+  edit?: DataTableCellEditor
 }
 
 /**
@@ -161,6 +210,15 @@ function useDataTableContext() {
   return table
 }
 
+type DataTableEditContextValue = {
+  editingId: string | null
+  setEditingId: (id: string | null) => void
+  onCellEdit: (edit: DataTableCellEdit<never>) => unknown
+  rootRef: React.RefObject<HTMLDivElement | null>
+}
+
+const DataTableEditContext = React.createContext<DataTableEditContextValue | null>(null)
+
 function alignClass(align: DataTableColumnMeta["align"]) {
   return align === "right" ? "text-right tabular-nums" : undefined
 }
@@ -182,14 +240,21 @@ function SelectAllCheckbox() {
 function selectionColumn<TData extends RowData>(): DataTableColumn<TData> {
   return {
     id: "__select",
-    header: () => <SelectAllCheckbox />,
+    // A flex box, so the checkbox centers on the row instead of sitting on a text baseline.
+    header: () => (
+      <div className="flex items-center">
+        <SelectAllCheckbox />
+      </div>
+    ),
     cell: ({ row }) => (
-      <Checkbox
-        aria-label="Select row"
-        checked={row.getIsSelected()}
-        disabled={!row.getCanSelect()}
-        onCheckedChange={(checked) => row.toggleSelected(checked)}
-      />
+      <div className="flex items-center">
+        <Checkbox
+          aria-label="Select row"
+          checked={row.getIsSelected()}
+          disabled={!row.getCanSelect()}
+          onCheckedChange={(checked) => row.toggleSelected(checked)}
+        />
+      </div>
     ),
     enableGlobalFilter: false,
     enableHiding: false,
@@ -486,14 +551,423 @@ function SelectionBar<TData extends RowData>({
   )
 }
 
+// Editors overlay the cell at a 2px inset. With their 1px border, this padding
+// keeps the text exactly where it sits at rest, so entering edit mode doesn't jump.
+const EDITOR_INPUT_CLASS =
+  "size-full min-w-0 [&_input]:h-full [&_input]:px-[calc(--spacing(1.5)-1px)] [&_input]:text-base [&_input]:leading-none sm:[&_input]:h-full sm:[&_input]:text-sm in-[td:first-child]:[&_input]:ps-[calc(--spacing(2.5)-1px)] in-[td:last-child]:[&_input]:pe-[calc(--spacing(2.5)-1px)]"
+
+function InputEditor({
+  editor,
+  initial,
+  error: initialError,
+  align,
+  label,
+  onSave,
+  onCancel,
+}: {
+  editor: Extract<DataTableCellEditor, { type: "text" | "number" }>
+  initial: unknown
+  error?: string
+  align?: DataTableColumnMeta["align"]
+  label: string
+  onSave: (value: unknown, options: { move?: 1 | -1; refocus: boolean }) => void
+  onCancel: (options: { refocus: boolean }) => void
+}) {
+  const [draft, setDraft] = React.useState(initial === null || initial === undefined ? "" : String(initial))
+  const [error, setError] = React.useState(initialError)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  // Removing a focused input can fire blur; the first exit wins.
+  const finished = React.useRef(false)
+
+  React.useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  function parse(): { value: unknown } | { message: string } {
+    if (editor.type === "text") {
+      if (editor.required && draft.trim() === "") return { message: "This can't be empty." }
+      const message = editor.validate?.(draft)
+      return message ? { message } : { value: draft }
+    }
+    if (draft.trim() === "") return { value: null }
+    const value = Number(draft)
+    if (Number.isNaN(value)) return { message: "Enter a number." }
+    if (editor.min !== undefined && value < editor.min) return { message: `Must be at least ${editor.min}.` }
+    if (editor.max !== undefined && value > editor.max) return { message: `Must be at most ${editor.max}.` }
+    const message = editor.validate?.(value)
+    return message ? { message } : { value }
+  }
+
+  function submit(move?: 1 | -1) {
+    const result = parse()
+    if ("message" in result) {
+      setError(result.message)
+      return
+    }
+    finished.current = true
+    onSave(result.value, { move, refocus: true })
+  }
+
+  return (
+    <Tooltip open={Boolean(error)}>
+      <TooltipTrigger render={<span className="absolute inset-0.5 block" />}>
+        <Input
+          ref={inputRef}
+          aria-invalid={error ? true : undefined}
+          aria-label={label}
+          className={cn(EDITOR_INPUT_CLASS, align === "right" && "[&_input]:text-right [&_input]:tabular-nums")}
+          inputMode={editor.type === "number" ? "decimal" : undefined}
+          placeholder={editor.placeholder}
+          size="compact"
+          value={draft}
+          onBlur={() => {
+            if (finished.current) return
+            finished.current = true
+            // An invalid draft is dropped, so clicking away never traps anyone in a cell.
+            const result = parse()
+            if ("message" in result) onCancel({ refocus: false })
+            else onSave(result.value, { refocus: false })
+          }}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            setError(undefined)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault()
+              submit()
+            } else if (event.key === "Escape") {
+              event.preventDefault()
+              finished.current = true
+              onCancel({ refocus: true })
+            } else if (event.key === "Tab") {
+              event.preventDefault()
+              submit(event.shiftKey ? -1 : 1)
+            }
+          }}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{error}</TooltipContent>
+      {error && (
+        <span className="sr-only" role="alert">
+          {error}
+        </span>
+      )}
+    </Tooltip>
+  )
+}
+
+function SelectEditor({
+  editor,
+  initial,
+  label,
+  onSave,
+  onCancel,
+}: {
+  editor: Extract<DataTableCellEditor, { type: "select" }>
+  initial: unknown
+  label: string
+  onSave: (value: unknown, options: { refocus: boolean }) => void
+  onCancel: (options: { refocus: boolean }) => void
+}) {
+  const finished = React.useRef(false)
+  return (
+    <Select
+      defaultOpen
+      items={editor.options}
+      modal={false}
+      value={initial as string}
+      onOpenChange={(open) => {
+        if (open || finished.current) return
+        finished.current = true
+        onCancel({ refocus: true })
+      }}
+      onValueChange={(value) => {
+        finished.current = true
+        onSave(value, { refocus: true })
+      }}
+    >
+      <SelectTrigger
+        aria-label={label}
+        className="absolute inset-0.5 h-auto min-h-0 w-auto min-w-0 rounded-md px-[calc(--spacing(1.5)-1px)] text-base sm:h-auto sm:min-h-0 sm:text-sm in-[td:first-child]:ps-[calc(--spacing(2.5)-1px)] in-[td:last-child]:pe-[calc(--spacing(2.5)-1px)]"
+        size="xs"
+      >
+        <SelectValue>
+          {(value: string) => {
+            const option = editor.options.find((item) => item.value === value)
+            return (
+              <span className="flex min-w-0 items-center gap-2">
+                {option?.icon}
+                <span className="truncate">{option?.label ?? value}</span>
+              </span>
+            )
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false} className="min-w-40" matchTriggerWidth={false}>
+        {editor.options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            <span className="flex items-center gap-2">
+              {option.icon}
+              {option.label}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function CustomEditor({
+  children,
+  onCancel,
+}: {
+  children: React.ReactNode
+  onCancel: (options: { refocus: boolean }) => void
+}) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const latestCancel = React.useRef(onCancel)
+  latestCancel.current = onCancel
+
+  React.useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("input, select, textarea, button, [tabindex]")?.focus()
+
+    // Clicking away closes the editor, unless the click is in a popup it opened.
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Element
+      const inPopup = target.closest('[role="listbox"], [role="menu"], [role="dialog"], [data-slot$="-popup"]')
+      if (!ref.current?.contains(target) && !inPopup) latestCancel.current({ refocus: false })
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      className="absolute inset-0.5 flex items-center"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onCancel({ refocus: true })
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function editorText(editor: DataTableCellEditor, value: unknown) {
+  if (editor.type === "select") {
+    return editor.options.find((option) => option.value === value)?.label ?? String(value ?? "")
+  }
+  return value === null || value === undefined ? "" : String(value)
+}
+
+/**
+ * A cell you can click or tab to. The editor is drawn over the cell while the
+ * display stays in place underneath, so columns never change width.
+ */
+function EditableCell<TData extends RowData>({
+  cell,
+  editor,
+  label,
+}: {
+  cell: Cell<DataTableFeatures, TData, unknown>
+  editor: DataTableCellEditor
+  label: string
+}) {
+  const context = React.useContext(DataTableEditContext)
+  if (!context) throw new Error("EditableCell must be used inside DataTable")
+  const { editingId, setEditingId, onCellEdit, rootRef } = context
+
+  const [pending, setPending] = React.useState<{ value: unknown } | null>(null)
+  const [failure, setFailure] = React.useState<{ value: unknown; message: string } | null>(null)
+  // A failed save explains itself, even when the pointer never moved. It then
+  // steps aside and comes back on hover or focus.
+  const [failureTipOpen, setFailureTipOpen] = React.useState(false)
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
+  const refocusOnExit = React.useRef(false)
+  const isEditing = editingId === cell.id
+  const value = cell.getValue()
+  const align = cell.column.columnDef.meta?.align
+
+  React.useEffect(() => {
+    if (!isEditing && refocusOnExit.current) {
+      refocusOnExit.current = false
+      buttonRef.current?.focus()
+    }
+  }, [isEditing])
+
+  React.useEffect(() => {
+    if (!failure || !failureTipOpen) return
+    const timer = window.setTimeout(() => setFailureTipOpen(false), 4000)
+    return () => window.clearTimeout(timer)
+  }, [failure, failureTipOpen])
+
+  function fail(next: unknown, error: unknown) {
+    setFailure({ value: next, message: messageFrom(error) })
+    setFailureTipOpen(true)
+  }
+
+  function moveTo(direction: 1 | -1) {
+    const cells = [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-edit-cell]") ?? [])]
+    const target = cells[cells.findIndex((element) => element === buttonRef.current) + direction]
+    if (target?.dataset.editCell) {
+      setEditingId(target.dataset.editCell)
+    } else {
+      refocusOnExit.current = true
+      setEditingId(null)
+    }
+  }
+
+  function exit(options: { move?: 1 | -1; refocus: boolean }) {
+    if (options.move) {
+      moveTo(options.move)
+      return
+    }
+    refocusOnExit.current = options.refocus
+    setEditingId(null)
+  }
+
+  function save(next: unknown, options: { move?: 1 | -1; refocus: boolean }) {
+    exit(options)
+    setFailure(null)
+    setFailureTipOpen(false)
+    if (editorText(editor, next) === editorText(editor, value)) return
+
+    let result: unknown
+    try {
+      result = onCellEdit({
+        row: cell.row.original as never,
+        rowId: cell.row.id,
+        columnId: cell.column.id,
+        value: next,
+        previous: value,
+      })
+    } catch (error) {
+      fail(next, error)
+      return
+    }
+    if (result instanceof Promise) {
+      setPending({ value: next })
+      result.then(
+        () => setPending(null),
+        (error: unknown) => {
+          setPending(null)
+          fail(next, error)
+        }
+      )
+    }
+  }
+
+  const text = editorText(editor, value)
+  const initial = failure ? failure.value : value
+
+  return (
+    <>
+      <Tooltip disabled={!failure} open={failureTipOpen} onOpenChange={setFailureTipOpen}>
+        <TooltipTrigger
+          render={
+            <button
+              ref={buttonRef}
+              aria-label={`Edit ${label}${text ? `: ${text}` : ""}`}
+              data-edit-cell={cell.id}
+              data-slot="data-table-editable-cell"
+              disabled={Boolean(pending)}
+              tabIndex={isEditing ? -1 : 0}
+              type="button"
+              className={cn(
+                "group/edit -mx-1.5 -my-0.5 flex min-h-6 w-[calc(100%+--spacing(3))] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left outline-none transition-colors hover:bg-accent hover:ring-1 hover:ring-input hover:ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-default",
+                editor.type === "select" ? "cursor-pointer" : "cursor-text",
+                align === "right" && "justify-end text-right",
+                isEditing && "invisible",
+                failure && "ring-1 ring-destructive/36 ring-inset hover:ring-destructive/36"
+              )}
+              onClick={() => {
+                setFailureTipOpen(false)
+                setEditingId(cell.id)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "F2") setEditingId(cell.id)
+              }}
+            />
+          }
+        >
+          {failure && <CircleAlertIcon className="size-3.5 shrink-0 text-destructive" />}
+          {pending ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">
+              <span className="truncate">{editorText(editor, pending.value)}</span>
+              <Spinner size="xs" />
+            </span>
+          ) : text === "" ? (
+            <span className="text-placeholder">{editor.placeholder ?? "Empty"}</span>
+          ) : (
+            <FlexRender cell={cell} />
+          )}
+          {editor.type === "select" && !pending && (
+            <ChevronDownIcon className="ms-auto size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/edit:opacity-64 group-focus-visible/edit:opacity-64 pointer-coarse:opacity-64" />
+          )}
+        </TooltipTrigger>
+        {failure && <TooltipContent>{failure.message}</TooltipContent>}
+      </Tooltip>
+      {failure && (
+        <span className="sr-only" role="alert">
+          {`${label} wasn't saved. ${failure.message}`}
+        </span>
+      )}
+      {isEditing &&
+        (editor.type === "select" ? (
+          <SelectEditor
+            editor={editor}
+            initial={initial}
+            label={label}
+            onCancel={exit}
+            onSave={save}
+          />
+        ) : editor.type === "custom" ? (
+          <CustomEditor onCancel={exit}>
+            {editor.render({
+              value: initial,
+              commit: (next) => save(next, { refocus: true }),
+              cancel: () => exit({ refocus: true }),
+            })}
+          </CustomEditor>
+        ) : (
+          <InputEditor
+            align={align}
+            editor={editor}
+            error={failure?.message}
+            initial={initial}
+            label={label}
+            onCancel={exit}
+            onSave={save}
+          />
+        ))}
+    </>
+  )
+}
+
+function messageFrom(error: unknown) {
+  return error instanceof Error && error.message ? error.message : "Couldn't save this change."
+}
+
+function columnLabel<TData extends RowData>(column: Cell<DataTableFeatures, TData, unknown>["column"]) {
+  const header = column.columnDef.header
+  return column.columnDef.meta?.label ?? (typeof header === "string" ? header : column.id)
+}
+
 function DataTableBody<TData extends RowData>({
   loading,
   empty,
   skeletonRows,
+  editable,
+  canEditCell,
 }: {
   loading: boolean
   empty: React.ReactNode
   skeletonRows: number
+  editable: boolean
+  canEditCell?: (row: TData, columnId: string) => boolean
 }) {
   const table = useDataTableContext() as DataTableInstance<TData>
   const rows = table.getRowModel().rows
@@ -548,12 +1022,23 @@ function DataTableBody<TData extends RowData>({
         <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
           {row.getVisibleCells().map((cell: Cell<DataTableFeatures, TData, unknown>) => {
             const meta = cell.column.columnDef.meta
+            const editor =
+              editable && (canEditCell?.(row.original, cell.column.id) ?? true) ? meta?.edit : undefined
             return (
               <TableCell
                 key={cell.id}
-                className={cn("first:ps-3 last:pe-3", alignClass(meta?.align), meta?.className)}
+                className={cn(
+                  "first:ps-3 last:pe-3",
+                  editor && "relative",
+                  alignClass(meta?.align),
+                  meta?.className
+                )}
               >
-                <FlexRender cell={cell} />
+                {editor ? (
+                  <EditableCell cell={cell} editor={editor} label={columnLabel(cell.column)} />
+                ) : (
+                  <FlexRender cell={cell} />
+                )}
               </TableCell>
             )
           })}
@@ -583,6 +1068,8 @@ function DataTable<TData extends RowData>({
   loading = false,
   empty,
   toolbar,
+  onCellEdit,
+  canEditCell,
   options,
   className,
 }: {
@@ -601,6 +1088,13 @@ function DataTable<TData extends RowData>({
   /** Shown when there is no data at all. Filters that match nothing explain themselves. */
   empty?: React.ReactNode
   toolbar?: React.ReactNode | false
+  /**
+   * Saves a cell edit from a column with `meta.edit`. Update `data` here. Return
+   * a promise to show saving; reject it to mark the cell and keep the draft.
+   */
+  onCellEdit?: (edit: DataTableCellEdit<TData>) => void | Promise<unknown>
+  /** Locks individual cells in an editable column. */
+  canEditCell?: (row: TData, columnId: string) => boolean
   options?: DataTableOptions<TData>
   className?: string
 }) {
@@ -615,6 +1109,9 @@ function DataTable<TData extends RowData>({
     data,
     getRowId: getRowId ? (row) => getRowId(row) : undefined,
     globalFilterFn: "includesString",
+    // Saving an edit or refetching must not send anyone back to page one. The
+    // effects below reset it for the changes that should.
+    autoResetPageIndex: false,
     ...options,
     initialState: {
       ...options?.initialState,
@@ -622,12 +1119,53 @@ function DataTable<TData extends RowData>({
     },
   }) as DataTableInstance<TData>
 
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const editContext = React.useMemo<DataTableEditContextValue | null>(
+    () =>
+      onCellEdit
+        ? {
+            editingId,
+            setEditingId,
+            onCellEdit: onCellEdit as DataTableEditContextValue["onCellEdit"],
+            rootRef,
+          }
+        : null,
+    [editingId, onCellEdit]
+  )
+
+  const { globalFilter, columnFilters, sorting, pagination } = table.state
+  const manualPagination = options?.manualPagination ?? false
+  const resetsOn = React.useRef({ globalFilter, columnFilters, sorting })
+  const pageCount = table.getPageCount()
+
+  React.useEffect(() => {
+    const previous = resetsOn.current
+    if (
+      previous.globalFilter === globalFilter &&
+      previous.columnFilters === columnFilters &&
+      previous.sorting === sorting
+    ) {
+      return
+    }
+    resetsOn.current = { globalFilter, columnFilters, sorting }
+    if (!manualPagination) table.setPageIndex(0)
+  }, [columnFilters, globalFilter, manualPagination, sorting, table])
+
+  // Deleting the last rows on the last page shouldn't strand someone on an empty one.
+  React.useEffect(() => {
+    if (!manualPagination && pagination.pageIndex > 0 && pagination.pageIndex >= pageCount) {
+      table.setPageIndex(Math.max(pageCount - 1, 0))
+    }
+  }, [manualPagination, pageCount, pagination.pageIndex, table])
+
   const hasSelection = Object.keys(table.state.rowSelection).length > 0
   const showToolbar = hasSelection && selectionActions
 
   return (
     <DataTableContext.Provider value={table as DataTableInstance}>
-      <div data-slot="data-table" className={cn("flex w-full min-w-0 flex-col gap-3", className)}>
+      <DataTableEditContext.Provider value={editContext}>
+        <div ref={rootRef} data-slot="data-table" className={cn("flex w-full min-w-0 flex-col gap-3", className)}>
         {showToolbar ? (
           <SelectionBar actions={selectionActions} />
         ) : toolbar === false ? null : (
@@ -667,6 +1205,8 @@ function DataTable<TData extends RowData>({
             </TableHeader>
             <TableBody>
               <DataTableBody<TData>
+                canEditCell={canEditCell}
+                editable={Boolean(onCellEdit)}
                 empty={empty}
                 loading={loading}
                 skeletonRows={Math.min(pageSize, 5)}
@@ -676,6 +1216,7 @@ function DataTable<TData extends RowData>({
           <DataTablePagination pageSizes={pageSizes} />
         </div>
       </div>
+      </DataTableEditContext.Provider>
     </DataTableContext.Provider>
   )
 }
@@ -690,6 +1231,8 @@ export {
   DataTableViewOptions,
   dataTableFeatures,
   useDataTableContext,
+  type DataTableCellEdit,
+  type DataTableCellEditor,
   type DataTableColumn,
   type DataTableColumnMeta,
   type DataTableFeatures,

@@ -13,7 +13,7 @@ Requires React 19 and Tailwind CSS 4.
 
 ```sh
 pnpm add github:eric-minassian/design#release   # latest
-pnpm add github:eric-minassian/design#v0.2.0    # pinned
+pnpm add github:eric-minassian/design#v0.3.0    # pinned
 ```
 
 In your Tailwind entry file:

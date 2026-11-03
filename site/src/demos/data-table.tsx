@@ -20,9 +20,10 @@ import {
 } from "@/components/dropdown-menu"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/empty"
 import { StatusDot } from "@/components/status-dot"
+import { ToggleGroup, ToggleGroupItem } from "@/components/toggle-group"
 
 export const notes =
-  "Table is for showing data you already have in the shape you want. Reach for this once people need to sort, search or select it. It is built on TanStack Table, so anything it can do is available through the options prop."
+  "Table is for showing data you already have in the shape you want. Reach for this once people need to sort, search or select it. It is built on TanStack Table, so anything it can do is available through the options prop. Editable cells save on Enter, Tab or clicking away, and Escape cancels. A true or false value doesn't need an edit mode: put a Switch in the cell."
 
 type Status = "running" | "review" | "merged" | "failed"
 
@@ -181,6 +182,132 @@ export function Selection() {
           </Button>
         </>
       )}
+    />
+  )
+}
+
+const editableColumns: DataTableColumn<Thread>[] = [
+  {
+    accessorKey: "title",
+    header: "Thread",
+    meta: { edit: { type: "text", required: true } },
+    cell: ({ row }) => <span className="truncate font-medium">{row.original.title}</span>,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    meta: {
+      edit: {
+        type: "select",
+        options: (Object.keys(statuses) as Status[]).map((value) => ({
+          value,
+          label: statuses[value].label,
+          icon: <StatusDot tone={statuses[value].tone} />,
+        })),
+      },
+    },
+    cell: ({ row }) => {
+      const status = statuses[row.original.status]
+      return (
+        <span className="flex items-center gap-2 text-muted-foreground">
+          <StatusDot tone={status.tone} />
+          {status.label}
+        </span>
+      )
+    },
+  },
+  {
+    accessorKey: "tokens",
+    header: "Tokens",
+    meta: { align: "right", edit: { type: "number", min: 0 } },
+    cell: ({ row }) => row.original.tokens.toLocaleString("en-US"),
+  },
+]
+
+export function InlineEditing() {
+  const [rows, setRows] = React.useState(threads)
+
+  return (
+    <DataTable
+      canEditCell={(thread) => thread.status !== "merged"}
+      columns={editableColumns}
+      data={rows}
+      getRowId={(thread) => thread.id}
+      pageSize={5}
+      onCellEdit={({ rowId, columnId, value }) =>
+        setRows((current) =>
+          current.map((row) => (row.id === rowId ? { ...row, [columnId]: value } : row))
+        )
+      }
+    />
+  )
+}
+
+export function SavingToAServer() {
+  const [rows, setRows] = React.useState(threads)
+
+  return (
+    <DataTable
+      columns={editableColumns}
+      data={rows}
+      getRowId={(thread) => thread.id}
+      pageSize={5}
+      onCellEdit={async ({ rowId, columnId, value }) => {
+        // Stands in for your API. Try a title containing "fail".
+        await new Promise((resolve) => setTimeout(resolve, 700))
+        if (String(value).toLowerCase().includes("fail")) {
+          throw new Error("The server rejected this change.")
+        }
+        setRows((current) =>
+          current.map((row) => (row.id === rowId ? { ...row, [columnId]: value } : row))
+        )
+      }}
+    />
+  )
+}
+
+const modelColumns: DataTableColumn<Thread>[] = [
+  { accessorKey: "title", header: "Thread" },
+  {
+    accessorKey: "model",
+    header: "Model",
+    meta: {
+      edit: {
+        type: "custom",
+        render: ({ value, commit }) => (
+          <ToggleGroup
+            value={[String(value)]}
+            variant="segmented"
+            onValueChange={([next]) => {
+              if (next) commit(next)
+            }}
+          >
+            <ToggleGroupItem value="Opus 5.5">Opus</ToggleGroupItem>
+            <ToggleGroupItem value="Sonnet 5.5">Sonnet</ToggleGroupItem>
+            <ToggleGroupItem value="Haiku 5.5">Haiku</ToggleGroupItem>
+          </ToggleGroup>
+        ),
+      },
+    },
+  },
+]
+
+export function CustomEditor() {
+  const [rows, setRows] = React.useState(threads)
+
+  return (
+    <DataTable
+      columns={modelColumns}
+      data={rows}
+      getRowId={(thread) => thread.id}
+      pageSize={5}
+      pageSizes={false}
+      toolbar={false}
+      onCellEdit={({ rowId, columnId, value }) =>
+        setRows((current) =>
+          current.map((row) => (row.id === rowId ? { ...row, [columnId]: value } : row))
+        )
+      }
     />
   )
 }
