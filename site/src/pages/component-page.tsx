@@ -37,22 +37,32 @@ function titleFromName(name: string) {
 
 /**
  * Each `export function` in a demo file becomes one example, in source order.
- * Its code panel is that function's own text, so the docs cannot drift from
- * what is rendering.
+ * Its code panel is that function's own text, plus any types and data declared
+ * above it, so the docs cannot drift from what is rendering.
  */
 function parseDemos(source: string, module: DemoModule): Loaded {
   const matches = [...source.matchAll(/^export function (\w+)/gm)]
-  const demos = matches.map((match, index) => {
+  // Where the module's own setup starts: just past its last import.
+  const importLines = [...source.matchAll(/^import (?:\{[^}]*\}|[^"{}\n]+) from "[^"]+"$/gm)]
+  const lastImport = importLines.at(-1)
+  let cursor = lastImport ? lastImport.index + lastImport[0].length : 0
+
+  const demos = matches.map((match) => {
     const name = match[1]!
-    const end = matches[index + 1]?.index ?? source.length
-    const code = source
-      .slice(match.index, end)
-      .replace(/^export function/, "function")
-      .trimEnd()
+    const closing = source.indexOf("\n}\n", match.index)
+    const end = closing === -1 ? source.length : closing + 2
+    // Types, data and helpers above a demo are part of what it takes to write it.
+    const setup = source
+      .slice(cursor, match.index)
+      .replace(/^export const (?:notes|bare)\b[\s\S]*?\n(?=\n|$)/gm, "")
+      .replace(/^export (?=const|type)/gm, "")
+      .trim()
+    const body = source.slice(match.index, end).replace(/^export function/, "function")
+    cursor = end
     return {
       name,
       title: titleFromName(name),
-      code: publicImports(code),
+      code: publicImports(setup ? `${setup}\n\n${body}` : body),
       Component: module[name] as React.ComponentType,
       bare: Array.isArray(module.bare) && module.bare.includes(name),
     }
