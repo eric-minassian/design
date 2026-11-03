@@ -1,0 +1,20 @@
+/*
+ * @eric-minassian/design
+ *
+ * Consumers need exactly two lines:
+ *
+ *   @import "tailwindcss";
+ *   @import "@eric-minassian/design/styles.css";
+ *
+ * Every class the components use is picked up by the @source below.
+ */
+@import "tw-animate-css";
+@import "@fontsource-variable/inter";
+@import "./shadcn.css";
+@import "./tokens.css";
+@import "./accents.css";
+@import "./theme.css";
+@import "./utilities.css";
+@import "./base.css";
+
+@source "../components";

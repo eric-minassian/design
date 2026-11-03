@@ -1,9 +1,39 @@
-import { cn } from "#lib/utils"
-import { Loader2Icon } from "lucide-react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { LoaderCircleIcon } from "lucide-react"
 
-function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
+import { cn } from "@/lib/utils"
+
+// No default size: inside a Button the parent's svg rule sizes the glyph.
+const spinnerVariants = cva("motion-safe:animate-spin", {
+  variants: {
+    size: {
+      xs: "size-3",
+      sm: "size-3.5",
+      md: "size-4",
+      lg: "size-5",
+    },
+    tone: {
+      current: "",
+      muted: "text-muted-foreground",
+    },
+  },
+  defaultVariants: { tone: "current" },
+})
+
+function Spinner({
+  className,
+  size,
+  tone,
+  ...props
+}: React.ComponentProps<typeof LoaderCircleIcon> & VariantProps<typeof spinnerVariants>) {
   return (
-    <Loader2Icon role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <LoaderCircleIcon
+      role="status"
+      aria-label="Loading"
+      data-slot="spinner"
+      className={cn(spinnerVariants({ size, tone }), className)}
+      {...props}
+    />
   )
 }
 

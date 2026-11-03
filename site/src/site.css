@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "../../src/styles/index.css";
+
+@source "./";
+
+/* Shiki emits both palettes as variables; pick by the theme class. */
+.docs-code .shiki span {
+  color: var(--shiki-light);
+}
+.dark .docs-code .shiki span {
+  color: var(--shiki-dark);
+}

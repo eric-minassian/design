@@ -1,0 +1,102 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm build:site
+      - run: pnpm package
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: dist-site
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: release
+          path: .release
+          include-hidden-files: true
+
+  pages:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Apps install the `release` branch: built output with no build step, so a git
+  # dependency works in any package manager. Each version also gets a tag to pin.
+  release:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+      - name: Push to the release branch and tag the version
+        env:
+          SOURCE: ${{ runner.temp }}/release
+          SHA: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code origin release > /dev/null; then
+            git fetch origin release
+            git switch release
+          else
+            git switch --orphan release
+          fi
+
+          git rm -rf --quiet --ignore-unmatch .
+          git clean -fdx
+          cp -a "$SOURCE"/. .
+          git add -A
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Release ${SHA}"
+            git push origin release
+          fi
+
+          version="v$(node -p "require('./package.json').version")"
+          if ! git ls-remote --exit-code --tags origin "$version" > /dev/null; then
+            git tag "$version"
+            git push origin "$version"
+          fi
