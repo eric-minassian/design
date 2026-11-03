@@ -1,0 +1,57 @@
+/*
+ * Accents. One system, one action color per app: set data-accent on <html>.
+ * Dark values are lighter with dark text wherever a saturated mid-tone would
+ * fail contrast on true black. Indigo is the default and needs no attribute.
+ *
+ * For a one-off brand color, override --primary, --primary-foreground and
+ * --ring in your own stylesheet.
+ */
+:root[data-accent="rose"] {
+  --primary: oklch(0.591646 0.217985 0.584);
+  --primary-foreground: var(--color-white);
+
+  @variant dark {
+    --primary: oklch(0.460685 0.185347 4.099);
+    --primary-foreground: oklch(0.901233 0.057189 343.694);
+  }
+}
+
+:root[data-accent="grove"] {
+  --primary: oklch(0.523295 0.112292 158.089);
+  --primary-foreground: oklch(0.990339 0.008411 325.64);
+
+  @variant dark {
+    --primary: oklch(0.796228 0.133058 157.319);
+    --primary-foreground: oklch(0.222003 0.03479 328.979);
+  }
+}
+
+:root[data-accent="ocean"] {
+  --primary: oklch(0.536684 0.120219 247.01);
+  --primary-foreground: oklch(0.990339 0.008411 325.64);
+
+  @variant dark {
+    --primary: oklch(0.758933 0.105833 241.548);
+    --primary-foreground: oklch(0.222003 0.03479 328.979);
+  }
+}
+
+:root[data-accent="ember"] {
+  --primary: oklch(0.552831 0.129438 44.656);
+  --primary-foreground: oklch(0.990339 0.008411 325.64);
+
+  @variant dark {
+    --primary: oklch(0.762174 0.124117 52.082);
+    --primary-foreground: oklch(0.222003 0.03479 328.979);
+  }
+}
+
+:root[data-accent="iris"] {
+  --primary: oklch(0.525348 0.15373 294.176);
+  --primary-foreground: oklch(0.990339 0.008411 325.64);
+
+  @variant dark {
+    --primary: oklch(0.671712 0.169136 293.929);
+    --primary-foreground: oklch(0.222003 0.03479 328.979);
+  }
+}

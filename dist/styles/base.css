@@ -1,0 +1,70 @@
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* 2px outlines stay inside controls, so clipped containers never cut them off. */
+  *,
+  ::before,
+  ::after {
+    outline-offset: -2px;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    background-color: var(--background);
+  }
+
+  body {
+    @apply text-foreground;
+    margin: 0;
+    background-image: var(--surface-grain);
+    background-repeat: repeat;
+    background-size: var(--surface-grain-size);
+  }
+
+  pre,
+  code,
+  kbd {
+    font-family: var(--font-mono);
+  }
+
+  /* Lighter default icon stroke. In the base layer so stroke-* utilities still win. */
+  :where(svg.lucide[stroke-width="2"]) {
+    stroke-width: 1.75;
+  }
+
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 24%, transparent);
+  }
+}
+
+/* Add to <html> for one frame while switching themes to stop every transition firing at once. */
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+}

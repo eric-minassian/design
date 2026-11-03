@@ -1,0 +1,11 @@
+import { NavigationMenu as NavigationMenu$1 } from "@base-ui/react/navigation-menu";
+declare function NavigationMenu({ align, className, children, ...props }: NavigationMenu$1.Root.Props & Pick<NavigationMenu$1.Positioner.Props, "align">): import("react").JSX.Element;
+declare function NavigationMenuList({ className, ...props }: React.ComponentPropsWithRef<typeof NavigationMenu$1.List>): import("react").JSX.Element;
+declare function NavigationMenuItem({ className, ...props }: React.ComponentPropsWithRef<typeof NavigationMenu$1.Item>): import("react").JSX.Element;
+declare const navigationMenuTriggerStyle: (props?: import("class-variance-authority/types").ClassProp | undefined) => string;
+declare function NavigationMenuTrigger({ className, children, ...props }: NavigationMenu$1.Trigger.Props): import("react").JSX.Element;
+declare function NavigationMenuContent({ className, ...props }: NavigationMenu$1.Content.Props): import("react").JSX.Element;
+declare function NavigationMenuPositioner({ className, side, sideOffset, align, alignOffset, ...props }: NavigationMenu$1.Positioner.Props): import("react").JSX.Element;
+declare function NavigationMenuLink({ className, ...props }: NavigationMenu$1.Link.Props): import("react").JSX.Element;
+declare function NavigationMenuIndicator({ className, ...props }: React.ComponentPropsWithRef<typeof NavigationMenu$1.Icon>): import("react").JSX.Element;
+export { NavigationMenu, NavigationMenuContent, NavigationMenuIndicator, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuPositioner, NavigationMenuTrigger, navigationMenuTriggerStyle };

@@ -1,0 +1,16 @@
+import * as React from "react";
+import { Toast as Toast$1 } from "@base-ui/react/toast";
+declare const toast: import("@base-ui/react").ToastManager<any>;
+declare function ToastProvider({ ...props }: Toast$1.Provider.Props): React.JSX.Element;
+declare function ToastPortal({ ...props }: Toast$1.Portal.Props): React.JSX.Element;
+declare function ToastViewport({ className, ...props }: Toast$1.Viewport.Props): React.JSX.Element;
+declare function Toast({ className, ...props }: Toast$1.Root.Props): React.JSX.Element;
+declare function ToastContent({ className, ...props }: Toast$1.Content.Props): React.JSX.Element;
+declare function ToastTitle({ className, ...props }: Toast$1.Title.Props): React.JSX.Element;
+declare function ToastDescription({ className, ...props }: Toast$1.Description.Props): React.JSX.Element;
+declare function ToastAction({ className, render, ...props }: Toast$1.Action.Props): React.JSX.Element;
+declare function ToastClose({ className, children, ...props }: Toast$1.Close.Props): React.JSX.Element;
+declare function Toaster({ children, toastManager, ...props }: Toast$1.Provider.Props): React.JSX.Element;
+declare const createToastManager: typeof Toast$1.createToastManager;
+declare const useToastManager: typeof Toast$1.useToastManager;
+export { Toast, ToastAction, ToastClose, ToastContent, ToastDescription, ToastPortal, ToastProvider, ToastTitle, ToastViewport, Toaster, createToastManager, toast, useToastManager };

@@ -1,0 +1,2 @@
+import * as React from "react";
+export declare function useHighlightedCode(value: string, language: string): (string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | React.JSX.Element[] | null | undefined)[];

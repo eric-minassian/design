@@ -1,0 +1,10 @@
+import { Button } from "./button.js";
+import * as React from "react";
+import { MessageScroller as MessageScroller$1, useMessageScroller, useMessageScrollerScrollable, useMessageScrollerVisibility } from "@shadcn/react/message-scroller";
+declare function MessageScrollerProvider(props: React.ComponentProps<typeof MessageScroller$1.Provider>): React.JSX.Element;
+declare function MessageScroller({ className, ...props }: React.ComponentProps<typeof MessageScroller$1.Root>): React.JSX.Element;
+declare function MessageScrollerViewport({ className, ...props }: React.ComponentProps<typeof MessageScroller$1.Viewport>): React.JSX.Element;
+declare function MessageScrollerContent({ className, ...props }: React.ComponentProps<typeof MessageScroller$1.Content>): React.JSX.Element;
+declare function MessageScrollerItem({ className, scrollAnchor, ...props }: React.ComponentProps<typeof MessageScroller$1.Item>): React.JSX.Element;
+declare function MessageScrollerButton({ direction, className, children, render, variant, size, ...props }: React.ComponentProps<typeof MessageScroller$1.Button> & Pick<React.ComponentProps<typeof Button>, "variant" | "size">): React.JSX.Element;
+export { MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerProvider, MessageScrollerViewport, useMessageScroller, useMessageScrollerScrollable, useMessageScrollerVisibility };
