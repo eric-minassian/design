@@ -3,7 +3,7 @@ import * as React from "react";
 import { VariantProps } from "class-variance-authority";
 import { useRender } from "@base-ui/react/use-render";
 declare const attachmentVariants: (props?: ({
-  size?: "default" | "sm" | "xs" | null | undefined;
+  size?: "xs" | "sm" | "default" | null | undefined;
   orientation?: "horizontal" | "vertical" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 declare function Attachment({ className, state, size, orientation, ...props }: React.ComponentProps<"div"> & VariantProps<typeof attachmentVariants> & {

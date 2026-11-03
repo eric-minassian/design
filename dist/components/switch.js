@@ -8,7 +8,7 @@ function Switch({ className, size = "default", ...props }) {
 	return /* @__PURE__ */ jsx(Switch$1.Root, {
 		"data-slot": "switch",
 		"data-size": size,
-		className: cn("inline-flex h-[calc(var(--thumb-size)+2px)] w-[calc(var(--thumb-size)*2-2px)] shrink-0 cursor-pointer items-center rounded-full p-[2px] outline-none transition-[background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background data-checked:bg-primary data-unchecked:bg-input data-disabled:cursor-not-allowed data-disabled:opacity-64", size === "sm" ? "[--thumb-size:--spacing(4)] sm:[--thumb-size:--spacing(3.5)]" : "[--thumb-size:--spacing(5)] sm:[--thumb-size:--spacing(4)]", className),
+		className: cn("inline-flex align-middle h-[calc(var(--thumb-size)+2px)] w-[calc(var(--thumb-size)*2-2px)] shrink-0 cursor-pointer items-center rounded-full p-[2px] outline-none transition-[background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background data-checked:bg-primary data-unchecked:bg-input data-disabled:cursor-not-allowed data-disabled:opacity-64", size === "sm" ? "[--thumb-size:--spacing(4)] sm:[--thumb-size:--spacing(3.5)]" : "[--thumb-size:--spacing(5)] sm:[--thumb-size:--spacing(4)]", className),
 		...props,
 		children: /* @__PURE__ */ jsx(Switch$1.Thumb, {
 			"data-slot": "switch-thumb",

@@ -3,13 +3,13 @@ import { InputProps } from "./input.js";
 import * as React from "react";
 import { VariantProps } from "class-variance-authority";
 declare const inputGroupVariants: (props?: ({
-  variant?: "default" | "popover" | "ghost" | null | undefined;
-  size?: "default" | "lg" | null | undefined;
+  variant?: "popover" | "default" | "ghost" | null | undefined;
+  size?: "lg" | "default" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 declare function InputGroup({ className, variant, size, ...props }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupVariants>): React.JSX.Element;
 declare const inputGroupAddonVariants: (props?: ({
   align?: "inline-start" | "inline-end" | "block-start" | "block-end" | null | undefined;
-  inset?: "default" | "pill" | null | undefined;
+  inset?: "pill" | "default" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 declare function InputGroupAddon({ className, align, inset, ...props }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>): React.JSX.Element;
 declare function InputGroupButton({ className, type, variant, size, ...props }: Omit<React.ComponentProps<typeof Button>, "type"> & {

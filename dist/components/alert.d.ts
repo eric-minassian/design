@@ -2,7 +2,7 @@ import * as React from "react";
 import { VariantProps } from "class-variance-authority";
 declare const alertVariants: (props?: ({
   surface?: "default" | "glass" | null | undefined;
-  variant?: "default" | "sidebar" | "destructive" | "error" | "info" | "success" | "warning" | null | undefined;
+  variant?: "sidebar" | "default" | "destructive" | "error" | "info" | "success" | "warning" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 declare function Alert({ className, variant, surface, controlAlignment, children, ...props }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants> & {
   controlAlignment?: "center" | "first-line";

@@ -1,6 +1,6 @@
 {
   "name": "@eric-minassian/design",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Eric Minassian's design system: shadcn on Base UI, in the design language of T3 Code.",
   "license": "MIT",
   "type": "module",

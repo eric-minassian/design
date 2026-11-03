@@ -1,5 +1,44 @@
 import * as React from "react";
 import { ColumnDef, Header, ReactTable, RowData, TableOptions } from "@tanstack/react-table";
+/** Return a message to reject the value and keep the editor open. */
+type DataTableCellValidator<TValue> = (value: TValue) => string | undefined;
+type DataTableCellEditor = {
+  type: "text";
+  placeholder?: string;
+  required?: boolean;
+  validate?: DataTableCellValidator<string>;
+} | {
+  type: "number";
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  validate?: DataTableCellValidator<number>;
+} | {
+  type: "select";
+  placeholder?: string;
+  options: {
+    label: string;
+    value: string;
+    icon?: React.ReactNode;
+  }[];
+} | {
+  /** A date picker, a combobox, or anything else. Escape cancels for you. */
+  type: "custom";
+  placeholder?: string;
+  render: (props: {
+    value: unknown;
+    commit: (value: unknown) => void;
+    cancel: () => void;
+  }) => React.ReactNode;
+};
+type DataTableCellEdit<TData> = {
+  row: TData;
+  rowId: string;
+  columnId: string;
+  value: unknown;
+  previous: unknown;
+};
 type DataTableColumnMeta = {
   /** Right-align numbers so they can be compared. Also applies tabular figures. */
   align?: "left" | "right";
@@ -7,6 +46,8 @@ type DataTableColumnMeta = {
   label?: string;
   /** Classes for this column's header and cells, such as a fixed width. */
   className?: string;
+  /** Makes the column's cells editable in place. Needs `onCellEdit` on the table. */
+  edit?: DataTableCellEditor;
 };
 /**
  * Keeps a row whose value is one of the chosen values. Works for single values
@@ -97,7 +138,7 @@ declare function DataTablePagination({ pageSizes }: {
  * pass `false` to drop it. For server-side data, set `manualPagination`,
  * `manualSorting` and `manualFiltering` with `rowCount` through `options`.
  */
-declare function DataTable<TData extends RowData>({ columns, data, getRowId, selectable, selectionActions, pageSize, pageSizes, loading, empty, toolbar, options, className }: {
+declare function DataTable<TData extends RowData>({ columns, data, getRowId, selectable, selectionActions, pageSize, pageSizes, loading, empty, toolbar, onCellEdit, canEditCell, options, className }: {
   columns: DataTableColumn<TData>[];
   data: TData[];
   /** A stable id per row. Without one, selection follows the row's position. */
@@ -113,7 +154,14 @@ declare function DataTable<TData extends RowData>({ columns, data, getRowId, sel
   /** Shown when there is no data at all. Filters that match nothing explain themselves. */
   empty?: React.ReactNode;
   toolbar?: React.ReactNode | false;
+  /**
+   * Saves a cell edit from a column with `meta.edit`. Update `data` here. Return
+   * a promise to show saving; reject it to mark the cell and keep the draft.
+   */
+  onCellEdit?: (edit: DataTableCellEdit<TData>) => void | Promise<unknown>;
+  /** Locks individual cells in an editable column. */
+  canEditCell?: (row: TData, columnId: string) => boolean;
   options?: DataTableOptions<TData>;
   className?: string;
 }): React.JSX.Element;
-export { DataTable, type DataTableColumn, DataTableColumnHeader, type DataTableColumnMeta, DataTableFacetedFilter, type DataTableFeatures, type DataTableInstance, type DataTableOptions, DataTablePagination, DataTableSearch, DataTableToolbar, DataTableViewOptions, dataTableFeatures, useDataTableContext };
+export { DataTable, type DataTableCellEdit, type DataTableCellEditor, type DataTableColumn, DataTableColumnHeader, type DataTableColumnMeta, DataTableFacetedFilter, type DataTableFeatures, type DataTableInstance, type DataTableOptions, DataTablePagination, DataTableSearch, DataTableToolbar, DataTableViewOptions, dataTableFeatures, useDataTableContext };

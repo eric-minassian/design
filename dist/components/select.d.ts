@@ -5,7 +5,7 @@ import { Select as Select$1 } from "@base-ui/react/select";
 declare const Select: typeof Select$1.Root;
 declare const selectTriggerVariants: (props?: ({
   variant?: "default" | "ghost" | null | undefined;
-  size?: "default" | "sm" | "xs" | "lg" | "compact" | null | undefined;
+  size?: "xs" | "sm" | "lg" | "default" | "compact" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 declare function SelectGroup({ className, ...props }: Select$1.Group.Props): React.JSX.Element;
 declare function SelectValue({ className, ...props }: Select$1.Value.Props): React.JSX.Element;
