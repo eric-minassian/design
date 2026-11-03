@@ -1,7 +1,7 @@
 import * as React from "react"
+import { cn } from "@/lib/utils"
 
-import { cn } from "#lib/utils"
-import { Button } from "#components/button"
+import { Button } from "@/components/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
@@ -46,18 +46,19 @@ function PaginationLink({
 }: PaginationLinkProps) {
   return (
     <Button
-      asChild
-      variant={isActive ? "outline" : "ghost"}
+      variant={isActive ? "outline" : "ghost-muted"}
       size={size}
-      className={cn(className)}
-    >
-      <a
-        aria-current={isActive ? "page" : undefined}
-        data-slot="pagination-link"
-        data-active={isActive}
-        {...props}
-      />
-    </Button>
+      className={cn("tabular-nums", className)}
+      nativeButton={false}
+      render={
+        <a
+          aria-current={isActive ? "page" : undefined}
+          data-slot="pagination-link"
+          data-active={isActive}
+          {...props}
+        />
+      }
+    />
   )
 }
 
@@ -70,7 +71,7 @@ function PaginationPrevious({
     <PaginationLink
       aria-label="Go to previous page"
       size="default"
-      className={cn("pl-2!", className)}
+      className={cn("gap-1 ps-2", className)}
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" />
@@ -88,7 +89,7 @@ function PaginationNext({
     <PaginationLink
       aria-label="Go to next page"
       size="default"
-      className={cn("pr-2!", className)}
+      className={cn("gap-1 pe-2", className)}
       {...props}
     >
       <span className="hidden sm:block">{text}</span>
@@ -106,13 +107,12 @@ function PaginationEllipsis({
       aria-hidden
       data-slot="pagination-ellipsis"
       className={cn(
-        "flex size-7 items-center justify-center [&_svg:not([class*='size-'])]:size-3.5",
+        "flex size-9 items-center justify-center text-muted-foreground sm:size-8 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
     >
-      <MoreHorizontalIcon
-      />
+      <MoreHorizontalIcon />
       <span className="sr-only">More pages</span>
     </span>
   )

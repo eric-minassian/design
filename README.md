@@ -1,84 +1,84 @@
 # @eric-minassian/design
 
-Personal design system built on [shadcn/ui](https://ui.shadcn.com) — `radix-mira` style, sky theme on neutral base, Geist font, small radius (preset [`b5KHubhs8`](https://ui.shadcn.com/create?preset=b5KHubhs8)).
+My design system. [shadcn](https://ui.shadcn.com) components on
+[Base UI](https://base-ui.com), rebuilt in the design language of
+[T3 Code](https://github.com/pingdotgg/t3code): dense, quiet, and true black in the
+dark.
 
-Ships compiled ESM + type declarations (`dist/`) plus source (`src/`), with per-component exports so apps only bundle what they import.
+**Docs and live components: <https://eric-minassian.github.io/design/>**
 
-## Install
+## Use it in an app
+
+Requires React 19 and Tailwind CSS 4.
 
 ```sh
-# from GitHub (after pushing this repo)
-pnpm add github:eric-minassian/design
-
-# or while developing locally
-pnpm add ~/projects/design
+pnpm add github:eric-minassian/design#release   # latest
+pnpm add github:eric-minassian/design#v0.1.0    # pinned
 ```
 
-Requires React 18/19 and Tailwind CSS v4 in the consuming app.
-
-## App setup
-
-In your Tailwind CSS root (e.g. `src/index.css`):
+In your Tailwind entry file:
 
 ```css
 @import "tailwindcss";
-@import "@eric-minassian/design/globals.css";
-@source "../node_modules/@eric-minassian/design";
+@import "@eric-minassian/design/styles.css";
 ```
 
-- `globals.css` brings in the theme tokens, dark mode variant, Geist, and base styles.
-- `@source` tells Tailwind to scan this package for component classes.
-
-## Usage
+Then import what you need. Each component has its own entry point, so an app only
+bundles what it uses.
 
 ```tsx
-import { Button } from "@eric-minassian/design/components/button"
-import { Card, CardContent } from "@eric-minassian/design/components/card"
-import { cn } from "@eric-minassian/design/lib/utils"
+import { Button } from "@eric-minassian/design/button"
+import { cn } from "@eric-minassian/design/utils"
 ```
 
-Dark mode: toggle the `dark` class on `<html>` (works with `next-themes` or a manual toggle).
+Give each app its own color, and get light, dark and system handling:
 
-## Components
+```tsx
+import { ThemeProvider } from "@eric-minassian/design/theme"
 
-All 55 components available for the `radix-mira` style are included (the registry's `form` item ships no files for this style — use `field` with your form library instead). To pull future components or updates, run the shadcn CLI inside this repo — `components.json` is configured so generated code lands in `src/components/` with correct `#` imports:
+<ThemeProvider defaultAccent="grove">
+  <App />
+</ThemeProvider>
+```
+
+The accents are `indigo` (default), `rose`, `grove`, `ocean`, `ember` and `iris`. For
+anything else, override `--primary`, `--primary-foreground` and `--ring` after the import.
+
+The rules behind the system are in [DESIGN.md](./DESIGN.md), which ships with the
+package. Point your coding agent at it.
+
+## Work on it
 
 ```sh
-pnpm dlx shadcn@latest add <component>
-pnpm build
+pnpm install
+pnpm dev         # docs site on http://localhost:5199/design/
+pnpm typecheck
+pnpm build       # the library, to dist/
+pnpm build:site  # the docs, to dist-site/
 ```
 
-Note: `react-day-picker` is pinned to v9 (via `pnpm-workspace.yaml` overrides and the dependency spec) because the registry's calendar component targets the v9 API while `@latest` resolves to v10. If a CLI add bumps the spec in `package.json`, set it back to `^9`.
-
-## Storybook
-
-Stories for every component (from the [shadcn-storybook-registry](https://github.com/lloydrichards/shadcn-storybook-registry), `@storybook` namespace in `components.json`) live next to the components as `src/components/*.stories.tsx`, plus design-token docs (Color, Radius, Shadow, Spacing, Typography).
-
-```sh
-pnpm storybook         # dev server on :6006
-pnpm build-storybook   # static build to storybook-static/
+```
+src/components/   the components (shadcn base-mira, restyled)
+src/styles/       tokens, accents, theme, utilities, base
+site/src/demos/   one file per component; each exported function is a live example
+site/src/pages/   foundations, get started, overview
 ```
 
-Stories resolve `#components/*` straight to `src/` (the `source` condition in `.storybook/main.ts`), so component edits hot-reload without rebuilding. Stories are excluded from the npm package and `dist/`.
+To add a shadcn component, run `pnpm dlx shadcn@latest add <name>`, restyle it to the
+recipes in `DESIGN.md`, add `site/src/demos/<name>.tsx`, and list it in `site/src/nav.ts`.
 
-`.github/workflows/deploy-storybook.yml` deploys Storybook to GitHub Pages on every push to `main`. One-time setup after pushing the repo: Settings → Pages → Source → "GitHub Actions" (or `gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow`).
+The docs are our own site rather than Storybook, so they dogfood the system: the shell
+is the real `Sidebar`, the search is the real `Command`, and the code on each page is
+the source of the example above it.
 
-## Changing the theme
+## How it ships
 
-Apply a new preset from [ui.shadcn.com/create](https://ui.shadcn.com/create) without touching components:
+Every push to `main` runs the checks, deploys the docs to GitHub Pages, and pushes the
+built package to the `release` branch. To cut a version, bump `version` in `package.json`;
+CI tags it `v<version>`.
 
-```sh
-pnpm dlx shadcn@latest apply <preset-code> --only theme
-```
+## Credits
 
-Or edit the CSS variables in `src/styles/globals.css` directly.
-
-## How resolution works
-
-Internal imports use Node package imports (`#components/*`, `#lib/*`) with conditional targets:
-
-- `source` → `src/*.tsx` — used inside this repo (`tsconfig.json` sets `customConditions: ["source"]`) and available to monorepo consumers that opt in
-- `types` → `dist/*.d.ts` — consumers' TypeScript
-- `default` → `dist/*.js` — consumers' bundlers
-
-`tsc` leaves the `#` specifiers untouched in the build output, so the same compiled files work everywhere. The `prepare` script builds `dist/` automatically on install (including git installs).
+The design language, and many of the class recipes, come from
+[T3 Code](https://github.com/pingdotgg/t3code) (MIT, © T3 Tools Inc.). Components start
+from [shadcn/ui](https://ui.shadcn.com) (MIT) on [Base UI](https://base-ui.com) (MIT).

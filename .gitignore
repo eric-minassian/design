@@ -1,3 +1,5 @@
+dist
+dist-site
 node_modules
-storybook-static
-*.tgz
+*.log
+.release

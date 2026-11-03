@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Eric Minassian's design system: shadcn on Base UI, in the design language of T3 Code." />
+    <title>Design</title>
+    <link rel="icon" type="image/svg+xml" href="/design/favicon.svg" />
+    <script>
+      (function () {
+        try {
+          var d = document.documentElement
+          var t = localStorage.getItem("design:theme") || "system"
+          var a = localStorage.getItem("design:accent")
+          if (t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches)) d.classList.add("dark")
+          if (a && a !== "indigo") d.setAttribute("data-accent", a)
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
